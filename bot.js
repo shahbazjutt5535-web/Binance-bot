@@ -1026,15 +1026,7 @@ function generateOutput(priceData, indicators, name = "Symbol", tfLabel = "Timef
  - Middle: ${indicators.donchianMiddle20} / ${indicators.donchianMiddle14}
  - Lower: ${indicators.donchianLower20} / ${indicators.donchianLower14}
 
-Calculate All time frames and Values of all thes Indicatotors and Give me Out Put:
 📍 Final Signal Summary
-📉 What is the overall trend direction? (Bullish, Bearish, or Sideways, positive,Negative, Neutral)
-🌡 Present a momentum heatmap — Is momentum rising or fading?
-🧮 Identify key Fibonacci levels — Is the current price near a retracement or extension zone?
-🧭 Is the price nearing any known liquidity pool zones?
-📢 Do you think the price is more likely to decline from here, or is there a greater chance it will rise?
-🛡 Highlight ideal zones for entry, take profit, and stop-loss
-🎯 Based on the setup, is TP1, TP2, or TP3 most likely to be hit and after hit reEntry points?
 `;
 }
 
