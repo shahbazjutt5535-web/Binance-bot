@@ -8,6 +8,9 @@ const BOT_TOKEN = "7809164972:AAER566wpNtJt-YQoC4_aaMzBk6PX2sBplM";
 const bot = new Telegraf(BOT_TOKEN);
 const PORT = process.env.PORT || 3000;
 
+// CryptoCompare API Key (you'll need to get a free API key from cryptocompare.com)
+const CRYPTOCOMPARE_API_KEY = "YOUR_CRYPTOCOMPARE_API_KEY"; // Replace with your actual API key
+
 // --- Utility Functions ---
 function parseCommand(command) {
   const cmd = command.toLowerCase();
@@ -16,9 +19,9 @@ function parseCommand(command) {
 
   const [, symbolRaw, interval] = match;
 
-  const symbol = symbolRaw === "eth" ? "ETHUSDT"
-    : symbolRaw === "btc" ? "BTCUSDT"
-    : symbolRaw === "link" ? "LINKUSDT"
+  const symbol = symbolRaw === "eth" ? "ETH"
+    : symbolRaw === "btc" ? "BTC"
+    : symbolRaw === "link" ? "LINK"
     : null;
 
   if (!symbol) return null;
@@ -178,7 +181,6 @@ function getRVI(candles, period = 14) {
 }
 
 // On-Balance Volume (OBV)
-// On-Balance Volume (OBV)
 function getOBV(candles) {
   if (!candles || candles.length === 0) return 0;
 
@@ -249,24 +251,62 @@ function getHMA(candles, period = 9) {
   return hma.length ? hma[hma.length - 1] : 0;
 }
 
-// --- Binance Data Fetch ---
-async function getBinanceData(symbol, interval) {
-  const [priceRes, candlesRes] = await Promise.all([
-    axios.get(`https://api-gcp.binance.com/api/v3/ticker/24hr?symbol=${symbol}`),   // ✅ Updated API
-    axios.get(`https://api-gcp.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=200`) // ✅ Updated API
-  ]);
+// --- CryptoCompare Data Fetch ---
+async function getCryptoCompareData(symbol, interval) {
+  // Map intervals to CryptoCompare format
+  const intervalMap = {
+    '15m': '15',
+    '30m': '30',
+    '1h': '1H',
+    '4h': '4H',
+    '6h': '6H',
+    '12h': '12H'
+  };
 
-  const priceData = priceRes.data;
-  const candles = candlesRes.data.map(c => ({
-    time: c[0],
-    open: parseFloat(c[1]),
-    high: parseFloat(c[2]),
-    low: parseFloat(c[3]),
-    close: parseFloat(c[4]),
-    volume: parseFloat(c[5])
-  }));
+  const ccInterval = intervalMap[interval] || '1H';
   
-  return { priceData, candles };
+  try {
+    // Get price data
+    const priceRes = await axios.get(
+      `https://min-api.cryptocompare.com/data/pricemultifull?fsyms=${symbol}&tsyms=USD&api_key=${CRYPTOCOMPARE_API_KEY}`
+    );
+
+    // Get historical data (candles)
+    const candlesRes = await axios.get(
+      `https://min-api.cryptocompare.com/data/v2/histohour?fsym=${symbol}&tsym=USD&limit=200&aggregate=1&api_key=${CRYPTOCOMPARE_API_KEY}`
+    );
+
+    const priceDataRaw = priceRes.data.RAW[symbol].USD;
+    const candlesRaw = candlesRes.data.Data.Data;
+
+    // Transform price data to match Binance format
+    const priceData = {
+      lastPrice: priceDataRaw.PRICE,
+      highPrice: priceDataRaw.HIGH24HOUR,
+      lowPrice: priceDataRaw.LOW24HOUR,
+      priceChange: priceDataRaw.CHANGE24HOUR,
+      priceChangePercent: priceDataRaw.CHANGEPCT24HOUR.toFixed(2),
+      volume: priceDataRaw.VOLUME24HOUR,
+      quoteVolume: priceDataRaw.VOLUME24HOURTO,
+      openPrice: priceDataRaw.OPEN24HOUR,
+      closeTime: Date.now()
+    };
+
+    // Transform candles to match Binance format
+    const candles = candlesRaw.map(c => ({
+      time: c.time * 1000,
+      open: c.open,
+      high: c.high,
+      low: c.low,
+      close: c.close,
+      volume: c.volumeto
+    }));
+
+    return { priceData, candles };
+  } catch (error) {
+    console.error('CryptoCompare API Error:', error.response?.data || error.message);
+    throw new Error('Failed to fetch data from CryptoCompare');
+  }
 }
 
 // KDJ (9,3,3) calculation
@@ -1037,10 +1077,10 @@ bot.on("text", async (ctx) => {
 
   try {
     const { symbol, interval } = parsed;
-    const { priceData, candles } = await getBinanceData(symbol, interval);
+    const { priceData, candles } = await getCryptoCompareData(symbol, interval);
     const indicators = await calculateIndicators(candles);
     
-    const name = symbol.replace("USDT", "");
+    const name = symbol;
     const tfLabel = interval.toUpperCase();
     
     const message = generateOutput(priceData, indicators, name, tfLabel);
@@ -1058,9 +1098,3 @@ app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   bot.launch();
 });
-
-
-
-
-
-
