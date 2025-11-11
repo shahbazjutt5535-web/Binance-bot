@@ -180,26 +180,29 @@ function getRVI(candles, period = 14) {
   return rvi.toFixed(2);
 }
 
-// On-Balance Volume (OBV)
+// On-Balance Volume (OBV) - Fixed version
 function getOBV(candles) {
-  if (!candles || candles.length === 0) return 0;
+  if (!candles || candles.length < 2) return 0;
 
   let obv = 0;
-  const close = candles.map(c => c.close);
-  const volume = candles.map(c => c.volume);
+  
+  for (let i = 1; i < candles.length; i++) {
+    const currentClose = parseFloat(candles[i].close);
+    const previousClose = parseFloat(candles[i-1].close);
+    const currentVolume = parseFloat(candles[i].volume);
 
-  for (let i = 1; i < close.length; i++) {
-    if (close[i] > close[i - 1]) {
-      obv += volume[i];
-    } else if (close[i] < close[i - 1]) {
-      obv -= volume[i];
+    if (currentClose > previousClose) {
+      // Price up: add volume
+      obv += currentVolume;
+    } else if (currentClose < previousClose) {
+      // Price down: subtract volume
+      obv -= currentVolume;
     }
-    // If equal, OBV stays the same
+    // If price unchanged, OBV remains the same
   }
 
-  return obv; // raw value, format later if needed
+  return obv;
 }
-
 // Aroon Indicator
 function getAroon(candles, period = 14) {
   if (candles.length < period) return { up: 0, down: 0 };
