@@ -252,8 +252,8 @@ function getHMA(candles, period = 9) {
 // --- Binance Data Fetch ---
 async function getBinanceData(symbol, interval) {
   const [priceRes, candlesRes] = await Promise.all([
-    axios.get(`https://api.binance.com/api/v3/ticker/24hr?symbol=${symbol}`),
-    axios.get(`https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=200`)
+    axios.get(`https://api-gcp.binance.com/api/v3/ticker/24hr?symbol=${symbol}`),   // ✅ Updated API
+    axios.get(`https://api-gcp.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=200`) // ✅ Updated API
   ]);
 
   const priceData = priceRes.data;
